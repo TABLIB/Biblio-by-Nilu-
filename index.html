@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="pageTitle">Bibliography Generator 📚 ꯇꯕꯁꯨꯝ</title>
+
+  <!--
+  Biblio tool © 2025 Nilu (Tabasum)
+  All rights reserved.
+  This code is not for redistribution without permission.
+-->
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Meetei+Mayek&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Meetei+Mayek&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f5f5f5;
+    }
+    #installButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      font-size: 1em;
+      display: none; /* hide by default */
+    }
+    label, input, select, button {
+      display: block;
+      margin: 10px 0;
+    }
+    #citationoutput {
+      margin-top: 20px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      min-height: 50px;
+      white-space: pre-wrap;
+    }
+    #actionButtons {
+      margin-top: 15px;
+    }
+    #actionButtons button {
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 1em;
+      padding: 6px 12px;
+    }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-family: 'Noto Sans Meetei Mayek', sans-serif;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body lang="en">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">✍️ Biblio Tool</a>
+      <div class="d-flex align-items-center gap-3">
+        <h1 class="mb-0">Bibliography📖</h1>
+        <!-- Language Selection -->
+        <label for="langSelect" class="mb-0 text-white">Language:</label>
+        <select id="langSelect" onchange="changeLanguage()" class="form-select form-select-sm" style="width:auto;">
+  <option value="en">English</option>
+  <option value="hi">हिन्दी</option>
+</select>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <!-- Title -->
+    <h1 class="mb-4 text-center" id="pageTitle">Bibliography Generator 📚 ꯇꯕꯁꯨꯝ </h1>
+
+    <!-- Reference Type -->
+    <label for="refType" data-i18n="labelRefType">Reference Type:</label>
+<select id="refType" onchange="updateFormFields()" class="form-select" style="max-width:300px;">
+  <option value="book" data-i18n="optionBook">Book</option>
+  <option value="journal" data-i18n="optionJournal">Journal</option>
+  <option value="website" data-i18n="optionWebsite">Website</option>
+</select>
+
+    <!-- Citation Style -->
+    <label for="citationStyle" data-i18n="labelCitationStyle">Citation Style:</label>
+<select id="citationStyle" class="form-select" style="max-width:300px;">
+  <option value="apa" data-i18n="optionAPA">APA</option>
+  <option value="mla" data-i18n="optionMLA">MLA</option>
+  <option value="chicago" data-i18n="optionChicago">Chicago</option>
+</select>
+
+    <!-- Dynamic Form Fields -->
+    <form id="citationForm" class="mt-3" style="max-width:600px;">
+      <div id="formFields"></div>
+      <button type="submit" class="btn btn-primary mt-2" data-i18n="btnGenerate">Generate Citation</button>
+       </form>
+
+    <!-- Output -->
+    <div id="citationoutput" class="mt-4"></div>
+
+    <!-- Buttons for Edit and Copy -->
+    <div id="actionButtons" style="display:none;">
+      <button id="editBtn" class="btn btn-warning" title="Edit citation"><i class="fas fa-pen"></i> Edit</button>
+      <button id="copyBtn" class="btn btn-success" title="Copy citation"><i class="fas fa-copy"></i> Copy</button>
+    </div>
+  </div>
+
+  <button id="installButton" class="btn btn-success">📲 Install App</button>
+
+  <footer>
+    Created by: <span lang="mni">নিলু Tabasum</span>
+  </footer>
+
+  <!-- Service Worker Registration & PWA Install -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(error => console.log('Service Worker registration failed:', error));
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installButton');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA installed');
+      installBtn.style.display = 'none';
+    });
+    <label for="langSelect" class="mb-0 text-white" data-i18n="labelLanguage">Language:</label>
+<select id="langSelect" onchange="changeLanguage()">
+  <option value="en">English</option>
+  <option value="hi">हिन्दी</option>
+</select>
+
+<label for="refType" id="labelRefType">Reference Type:</label>
+<select id="refType" onchange="updateFormFields()">
+  <option value="book">Book</option>
+  <option value="journal">Journal</option>
+  <option value="website">Website</option>
+</select>
+
+<div id="formFields"></div>
+ </script>
+
+  </script>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Main App Logic -->
+  <script>
+    // Dynamically update form fields based on reference type
+    function updateFormFields() {
+  const type = document.getElementById('refType').value;
+  const lang = document.getElementById('langSelect').value;
+  const t = translations[lang] || translations['en'];
+  
+  const container = document.getElementById('formFields');
+  let html = '';
+
+  if (type === 'book') {
+    html = `
+      <label for="author">${t.labelAuthor}</label><input type="text" id="author" class="form-control" required />
+      <label for="title">${t.labelTitle}</label><input type="text" id="title" class="form-control" required />
+      <label for="publisher">${t.labelPublisher}</label><input type="text" id="publisher" class="form-control" required />
+      <label for="place">${t.labelPlace}</label><input type="text" id="place" class="form-control" required />
+      <label for="year">${t.labelYear}</label><input type="number" id="year" class="form-control" required />
+    `;
+  }
+  // Add journal and website types similarly if needed
+
+  container.innerHTML = html;
+}function updateFormFields() {
+      const type = document.getElementById('refType').value;
+      const container = document.getElementById('formFields');
+      let html = '';
+
+      if (type === 'book') {
+        html = `
+          <label for="author">Author:</label><input type="text" id="author" class="form-control" required />
+          <label for="title">Title:</label><input type="text" id="title" class="form-control" required />
+          <label for="publisher">Publisher:</label><input type="text" id="publisher" class="form-control" required />
+          <label for="place">Place of Publication:</label><input type="text" id="place" class="form-control" required />
+          <label for="year">Year:</label><input type="number" id="year" class="form-control" required />
+        `;
+      } else if (type === 'journal') {
+        html = `
+          <label for="author">Author:</label><input type="text" id="author" class="form-control" required />
+          <label for="title">Article Title:</label><input type="text" id="title" class="form-control" required />
+          <label for="journal">Journal Name:</label><input type="text" id="journal" class="form-control" required />
+          <label for="volume">Volume:</label><input type="text" id="volume" class="form-control" required />
+          <label for="issue">Issue:</label><input type="text" id="issue" class="form-control" required />
+          <label for="year">Year:</label><input type="number" id="year" class="form-control" required />
+          <label for="pages">Pages:</label><input type="text" id="pages" class="form-control" required />
+        `;
+      } else if (type === 'website') {
+        html = `
+          <label for="author">Author:</label><input type="text" id="author" class="form-control" />
+          <label for="title">Webpage Title:</label><input type="text" id="title" class="form-control" required />
+          <label for="website">Website Name:</label><input type="text" id="website" class="form-control" required />
+          <label for="date">Date Published (YYYY-MM-DD):</label><input type="date" id="date" class="form-control" />
+          <label for="url">URL:</label><input type="url" id="url" class="form-control" required />
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Helper to get input value safely
+    const getVal = (id) => document.getElementById(id)?.value.trim() || "";
+
+    // Citation generation on form submit
+    document.getElementById("citationForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const type = getVal('refType');
+      const style = getVal('citationStyle');
+
+      let citation = "";
+
+      if (type === 'book') {
+        const author = getVal("author");
+        const title = getVal("title");
+        const publisher = getVal("publisher");
+        const place = getVal("place");
+        const year = getVal("year");
+        if (!author || !title || !publisher || !place || !year) {
+          alert("Please fill in all required fields.");
+          return;
+        }
+        if (style === "apa") {
+          citation = `${author}. (${year}). *${title}*. ${place}: ${publisher}.`;
+        } else if (style === "mla") {
+          citation = `${author}. *${title}*. ${publisher}, ${year}.`;
+        } else if (style === "chicago") {
+          citation = `${author}. *${title}*. ${place}: ${publisher}, ${year}.`;
+        }
+      } else if (type === 'journal') {
+        const author = getVal("author");
+        const title = getVal("title");
+        const journal = getVal("journal");
+        const volume = getVal("volume");
+        const issue = getVal("issue");
+        const year = getVal("year");
+        const pages = getVal("pages");
+        if (!author || !title || !journal || !volume || !issue || !year || !pages) {
+          alert("Please fill in all required fields.");
+          return;
+        }
+        if (style === "apa") {
+          citation = `${author}. (${year}). ${title}. *${journal}*, ${volume}(${issue}), ${pages}.`;
+        } else if (style === "mla") {
+          citation = `${author}. "${title}." *${journal}* ${volume}.${issue} (${year}): ${pages}.`;
+        } else if (style === "chicago") {
+          citation = `${author}. "${title}." *${journal}* ${volume}, no. ${issue} (${year}): ${pages}.`;
+        }
+      } else if (type === 'website') {
+        const author = getVal("author");
+        const title = getVal("title");
+        const website = getVal("website");
+        const date = getVal("date");
+        const url = getVal("url");
+        if (!title || !website || !url) {
+          alert("Please fill in all required fields.");
+          return;
+        }
+        if (style === "apa") {
+          citation = author ? `${author}. (${date || "n.d."}). *${title}*. Retrieved from ${url}` : `*${title}*. (${date || "n.d."}). Retrieved from ${url}`;
+        } else if (style === "mla") {
+          citation = author ? `${author}. "${title}." *${website}*, ${date || "n.d."}, ${url}.` : `"${title}." *${website}*, ${date || "n.d."}, ${url}.`;
+        } else if (style === "chicago") {
+          citation = author ? `${author}. "${title}." *${website}*. Accessed ${date || "n.d."}. ${url}.` : `"${title}." *${website}*. Accessed ${date || "n.d."}. ${url}.`;
+        }
+      }
+
+      // Show citation
+      const output = document.getElementById('citationoutput');
+      output.textContent = citation;
+
+      // Show action buttons
+      document.getElementById('actionButtons').style.display = 'block';
+    });
+
+    // Edit button: re-enable form for editing
+    document.getElementById('editBtn').addEventListener('click', () => {
+      document.getElementById('citationoutput').textContent = "";
+      document.getElementById('actionButtons').style.display = 'none';
+    });
+
+    // Copy button: copy citation to clipboard
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const citationText = document.getElementById('citationoutput').textContent;
+      if (!citationText) return alert("Nothing to copy!");
+
+      navigator.clipboard.writeText(citationText)
+        .then(() => alert("Citation copied to clipboard!"))
+        .catch(() => alert("Failed to copy citation."));
+    });
+
+    // Call updateFormFields on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateFormFields();
+    });
+
+    // (Optional) stub for language change function
+    function changeLanguage() {
+      // Placeholder: add your language switching logic here if needed
+      alert("Language switching not implemented yet.");
+    }
+    const translations = {
+  en: {
+    labelLanguage: "Language:",
+    labelRefType: "Reference Type:",
+    labelCitationStyle: "Citation Style:",
+    optionBook: "Book",
+    optionJournal: "Journal",
+    optionWebsite: "Website",
+    optionAPA: "APA",
+    optionMLA: "MLA",
+    optionChicago: "Chicago",
+    labelAuthor: "Author:",
+    labelTitle: "Title:",
+    labelPublisher: "Publisher:",
+    labelPlace: "Place of Publication:",
+    labelYear: "Year:",
+    labelJournalName: "Journal Name:",
+    labelVolume: "Volume:",
+    labelIssue: "Issue:",
+    labelPages: "Pages:",
+    labelWebpageTitle: "Webpage Title:",
+    labelWebsiteName: "Website Name:",
+    labelDate: "Date Published (YYYY-MM-DD):",
+    labelURL: "URL:",
+    btnGenerate: "Generate Citation"
+  },
+  hi: {
+    labelLanguage: "भाषा:",
+    labelRefType: "संदर्भ प्रकार:",
+    labelCitationStyle: "उद्धरण शैली:",
+    optionBook: "पुस्तक",
+    optionJournal: "जर्नल",
+    optionWebsite: "वेबसाइट",
+    optionAPA: "एपीए",
+    optionMLA: "एमएलए",
+    optionChicago: "शिकागो",
+    labelAuthor: "लेखक:",
+    labelTitle: "शीर्षक:",
+    labelPublisher: "प्रकाशक:",
+    labelPlace: "प्रकाशन स्थान:",
+    labelYear: "वर्ष:",
+    labelJournalName: "जर्नल नाम:",
+    labelVolume: "खंड:",
+    labelIssue: "अंक:",
+    labelPages: "पृष्ठ:",
+    labelWebpageTitle: "वेबपेज शीर्षक:",
+    labelWebsiteName: "वेबसाइट नाम:",
+    labelDate: "प्रकाशन तिथि (YYYY-MM-DD):",
+    labelURL: "यूआरएल:",
+    btnGenerate: "उद्धरण बनाएँ" 
+}
+};
+function applyTranslations(lang) {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (translations[lang] && translations[lang][key]) {
+      // For OPTION elements, update textContent, otherwise innerText
+      if (el.tagName === "OPTION") {
+        el.textContent = translations[lang][key];
+      } else if (el.tagName === "INPUT" && (el.type === "submit" || el.type === "button")) {
+        el.value = translations[lang][key];
+      } else {
+        el.innerText = translations[lang][key];
+      }
+    }
+  });
+}
+function changeLanguage() {
+  const lang = document.getElementById('langSelect').value;
+  localStorage.setItem("lang", lang);
+  applyTranslations(lang);
+  updateFormFields();  // important!
+}
+window.addEventListener("DOMContentLoaded", () => {
+  const savedLang = localStorage.getItem("lang") || "en";
+  document.getElementById('langSelect').value = savedLang;
+  applyTranslations(savedLang);
+  updateFormFields();
+});
+  function updateFormFields() {
+  const type = document.getElementById('refType').value;
+  const lang = document.getElementById('langSelect').value;
+  const t = translations[lang] || translations['en'];
+
+  const container = document.getElementById('formFields');
+  let html = '';
+
+  if (type === 'book') {
+    html = `
+      <label for="author">${t.labelAuthor}</label><input type="text" id="author" class="form-control" required />
+      <label for="title">${t.labelTitle}</label><input type="text" id="title" class="form-control" required />
+      <label for="publisher">${t.labelPublisher}</label><input type="text" id="publisher" class="form-control" required />
+      <label for="place">${t.labelPlace}</label><input type="text" id="place" class="form-control" required />
+      <label for="year">${t.labelYear}</label><input type="number" id="year" class="form-control" required />
+    `;
+  } else if (type === 'journal') {
+    html = `
+      <label for="author">${t.labelAuthor}</label><input type="text" id="author" class="form-control" required />
+      <label for="title">${t.labelTitle}</label><input type="text" id="title" class="form-control" required />
+      <label for="journal">${t.labelJournalName}</label><input type="text" id="journal" class="form-control" required />
+      <label for="volume">${t.labelVolume}</label><input type="text" id="volume" class="form-control" required />
+      <label for="issue">${t.labelIssue}</label><input type="text" id="issue" class="form-control" required />
+      <label for="year">${t.labelYear}</label><input type="number" id="year" class="form-control" required />
+      <label for="pages">${t.labelPages}</label><input type="text" id="pages" class="form-control" required />
+    `;
+  } else if (type === 'website') {
+    html = `
+      <label for="author">${t.labelAuthor}</label><input type="text" id="author" class="form-control" />
+      <label for="title">${t.labelWebpageTitle}</label><input type="text" id="title" class="form-control" required />
+      <label for="website">${t.labelWebsiteName}</label><input type="text" id="website" class="form-control" required />
+      <label for="date">${t.labelDate}</label><input type="date" id="date" class="form-control" />
+      <label for="url">${t.labelURL}</label><input type="url" id="url" class="form-control" required />
+    `;
+  }
+
+  container.innerHTML = html;
+}
+  </script>
+
+</body>
+</html>
